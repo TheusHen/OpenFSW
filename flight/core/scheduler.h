@@ -1,8 +1,8 @@
 #pragma once
 
-#include "openfsw/boot.h"
+#include "../boot/boot.h"
 
-void scheduler_init(openfsw_boot_mode_t mode);
+void scheduler_init(system_mode_t mode);
 
 typedef void (*openfsw_job_fn_t)(void);
 

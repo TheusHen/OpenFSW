@@ -43,6 +43,7 @@ class EclipseScenario:
         self.simulator: Optional[Simulator] = None
         self.results: Dict = {}
         self.eclipse_events: List[Dict] = []
+        self.history: List = []
     
     def setup(self):
         """Setup scenario."""
@@ -73,6 +74,7 @@ class EclipseScenario:
         print(f"Running Eclipse Scenario: {self.config.duration_orbits} orbits")
         
         history = self.simulator.run(progress_callback=progress_callback)
+        self.history = history
         self.results = self._analyze_results(history)
         
         return self.results

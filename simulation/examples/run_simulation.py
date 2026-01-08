@@ -43,8 +43,8 @@ def run_quick_simulation():
     print(f"\nSimulation Configuration:")
     print(f"  Duration: {config.duration_seconds} s")
     print(f"  Time step: {config.time_step_seconds} s")
-    print(f"  Orbital altitude: {config.orbital.altitude_km} km")
-    print(f"  Inclination: {config.orbital.inclination_deg}°")
+    print(f"  Orbital altitude: {config.orbit.altitude_km} km")
+    print(f"  Inclination: {config.orbit.inclination_deg}°")
     
     print("\nRunning simulation...")
     start_time = time.time()

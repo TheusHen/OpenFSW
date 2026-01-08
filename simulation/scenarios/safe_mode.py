@@ -49,6 +49,7 @@ class SafeModeScenario:
         
         self.simulator: Optional[Simulator] = None
         self.results: Dict = {}
+        self.history = []
         self.fault_injected = False
         self.in_safe_mode = False
     
@@ -109,7 +110,9 @@ class SafeModeScenario:
         
         if b_norm > 1e-9:
             omega = sim.spacecraft.attitude_state.angular_velocity
-            dipole = -1e5 * np.cross(omega, b_field) / b_norm
+            # B-dot approximation: dB/dt ≈ -ω×B (body frame), so m = -k*dB/dt = k*(ω×B)
+            # Use |B|^2 scaling to avoid dependency on field magnitude.
+            dipole = 1e5 * np.cross(omega, b_field) / (b_norm ** 2)
             dipole = np.clip(dipole, -0.2, 0.2)
             sim.command_magnetorquers(dipole)
     
@@ -123,6 +126,7 @@ class SafeModeScenario:
         print(f"  Fault injection at: {self.config.fault_time_s}s")
         
         history = self.simulator.run(progress_callback=progress_callback)
+        self.history = history
         self.results = self._analyze_results(history)
         
         return self.results

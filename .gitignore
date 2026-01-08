@@ -1,3 +1,36 @@
+# Build outputs (generated)
+/build/
+/build-*/
+/cmake-build-*/
+
+# CMake generated files (often outside build dirs)
+CMakeCache.txt
+cmake_install.cmake
+CTestTestfile.cmake
+compile_commands.json
+
+# Python generated
+__pycache__/
+*.py[cod]
+*$py.class
+.pytest_cache/
+.mypy_cache/
+.ruff_cache/
+.coverage
+htmlcov/
+.tox/
+.venv/
+venv/
+env/
+
+# Editor/OS generated
+.vscode/
+.idea/
+*.swp
+*.swo
+.DS_Store
+Thumbs.db
+
 # Prerequisites
 *.d
 
@@ -14,7 +47,7 @@
 
 # Linker output
 *.ilk
-*. map
+*.map
 *.exp
 
 # Precompiled Headers
@@ -22,7 +55,7 @@
 *.pch
 
 # Libraries
-*. lib
+*.lib
 *.a
 *.la
 *.lai
@@ -46,7 +79,7 @@
 *.su
 *.idb
 *.pdb
-*. dwo
+*.dwo
 
 # Kernel Module Compile Results
 *.mod*
@@ -84,7 +117,7 @@ dkms.conf
 # *.pdf
 
 ## Generated if empty string is given at "Please type another file name for output:"
-. pdf
+.pdf
 
 ## Bibliography auxiliary files (bibtex/biblatex/biber):
 *.bbl
@@ -104,7 +137,7 @@ dkms.conf
 *.synctex.gz(busy)
 *.pdfsync
 *.rubbercache
-rubber. cache
+rubber.cache
 
 ## Build tool directories for auxiliary files
 # latexrun

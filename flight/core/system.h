@@ -1,11 +1,14 @@
-#pragma once
+#ifndef OPENFSW_SYSTEM_H
+#define OPENFSW_SYSTEM_H
 
-#include "openfsw/boot.h"
+#include "openfsw.h"
 
 typedef struct {
-    openfsw_boot_mode_t mode;
-    openfsw_reset_cause_t reset_cause;
+    system_mode_t mode;
+    reset_cause_t reset_cause;
 } openfsw_system_context_t;
 
-void openfsw_system_set_context(openfsw_boot_mode_t mode, openfsw_reset_cause_t reset_cause);
+void openfsw_system_set_context(system_mode_t mode, reset_cause_t reset_cause);
 const openfsw_system_context_t *openfsw_system_get_context(void);
+
+#endif /* OPENFSW_SYSTEM_H */

@@ -53,6 +53,7 @@ class GroundPassScenario:
         self.ground_station = GroundStation(gs_config)
         self.results: Dict = {}
         self.passes: List[Dict] = []
+        self.history: List = []
     
     def setup(self):
         """Setup scenario."""
@@ -103,6 +104,7 @@ class GroundPassScenario:
         print(f"  Ground station: {self.config.ground_station_lat}°, {self.config.ground_station_lon}°")
         
         history = self.simulator.run(progress_callback=progress_callback)
+        self.history = history
         self.results = self._analyze_results(history)
         
         return self.results

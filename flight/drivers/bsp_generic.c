@@ -1,4 +1,4 @@
-#include "openfsw/bsp.h"
+#include "bsp.h"
 
 /*
  * Generic BSP implementation.
@@ -25,9 +25,9 @@ void bsp_watchdog_kick(void)
     /* No-op by default. */
 }
 
-openfsw_reset_cause_t bsp_reset_get_cause(void)
+reset_cause_t bsp_reset_get_cause(void)
 {
-    return OPENFSW_RESET_UNKNOWN;
+    return RESET_CAUSE_UNKNOWN;
 }
 
 bool bsp_safe_mode_pin_asserted(void)

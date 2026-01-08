@@ -1,6 +1,7 @@
-#include "openfsw/rtos.h"
-#include "openfsw/bsp.h"
-#include "openfsw/scheduler.h"
+#include "../core/rtos.h"
+#include "../drivers/bsp.h"
+#include "../core/scheduler.h"
+#include "../core/health.h"
 
 #include "FreeRTOS.h"
 #include "task.h"
@@ -27,9 +28,10 @@ static void openfsw_scheduler_task(void *arg)
     }
 }
 
-__attribute__((noreturn)) void rtos_start(openfsw_boot_mode_t mode)
+__attribute__((noreturn)) void rtos_start(system_mode_t mode)
 {
-    (void)mode;
+    health_init(mode);
+    scheduler_init(mode);
 
     /* Create scheduler task using static allocation (no heap). */
     (void)xTaskCreateStatic(openfsw_scheduler_task,

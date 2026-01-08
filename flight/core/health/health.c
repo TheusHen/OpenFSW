@@ -1,6 +1,6 @@
-#include "openfsw/health.h"
-#include "openfsw/bsp.h"
-#include "openfsw/system.h"
+#include "../health.h"
+#include "../../drivers/bsp.h"
+#include "../system.h"
 
 typedef struct {
     uint32_t heartbeat;
@@ -8,7 +8,7 @@ typedef struct {
 
 static health_state_t g_health;
 
-void health_init(openfsw_boot_mode_t mode)
+void health_init(system_mode_t mode)
 {
     (void)mode;
     g_health.heartbeat = 0u;

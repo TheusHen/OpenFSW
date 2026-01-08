@@ -1,6 +1,6 @@
-#include "openfsw/scheduler.h"
-#include "openfsw/config.h"
-#include "openfsw/health.h"
+#include "../scheduler.h"
+#include "../config.h"
+#include "../health.h"
 
 typedef struct {
     openfsw_job_fn_t fn;
@@ -25,13 +25,13 @@ static void scheduler_reset(void)
     }
 }
 
-void scheduler_init(openfsw_boot_mode_t mode)
+void scheduler_init(system_mode_t mode)
 {
     (void)mode;
     scheduler_reset();
 
     /* Built-in periodic job(s). Keep safe-mode minimal. */
-    (void)scheduler_register_periodic(health_periodic, (mode == OPENFSW_BOOT_MODE_SAFE) ? 500u : 100u);
+    (void)scheduler_register_periodic(health_periodic, (mode == MODE_SAFE) ? 500u : 100u);
 }
 
 bool scheduler_register_periodic(openfsw_job_fn_t fn, uint32_t period_ms)

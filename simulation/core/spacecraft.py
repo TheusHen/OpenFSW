@@ -236,11 +236,11 @@ class Spacecraft:
     
     def set_angular_velocity(self, omega: np.ndarray):
         """Set angular velocity in body frame [rad/s]."""
-        self.attitude_state.angular_velocity = omega.copy()
+        self.attitude_state.angular_velocity = np.asarray(omega, dtype=float).copy()
     
     def set_quaternion(self, q: np.ndarray):
         """Set attitude quaternion [w, x, y, z]."""
-        self.attitude_state.quaternion = q.copy()
+        self.attitude_state.quaternion = np.asarray(q, dtype=float).copy()
         self.attitude_state.normalize_quaternion()
     
     def set_magnetorquer_command(self, dipole: np.ndarray):

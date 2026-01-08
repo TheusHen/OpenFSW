@@ -50,6 +50,7 @@ class NominalScenario:
         
         self.simulator: Optional[Simulator] = None
         self.results: Dict = {}
+        self.history = []
     
     def setup(self):
         """Setup scenario."""
@@ -101,6 +102,7 @@ class NominalScenario:
         print(f"Running Nominal Scenario: {self.config.duration_orbits} orbits")
         
         history = self.simulator.run(progress_callback=progress_callback)
+        self.history = history
         
         # Analyze results
         self.results = self._analyze_results(history)

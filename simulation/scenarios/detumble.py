@@ -113,6 +113,7 @@ class DetumbleScenario:
         
         # Run simulation with early termination check
         detumble_time = None
+        first_target_reached_time = None
         
         while self.simulator.time.elapsed_seconds < self.sim_config.duration_seconds:
             state = self.simulator.step()
@@ -123,7 +124,9 @@ class DetumbleScenario:
             if omega_deg_s < self.config.target_rate_deg_s:
                 if detumble_time is None:
                     detumble_time = state.time_s
-                    print(f"  Target rate reached at t={detumble_time:.1f}s")
+                    if first_target_reached_time is None:
+                        first_target_reached_time = detumble_time
+                        print(f"  Target rate reached at t={detumble_time:.1f}s")
                     
                     # Continue for a bit to confirm stability
                     continue
@@ -145,10 +148,10 @@ class DetumbleScenario:
         if not self.rate_history:
             return {'success': False, 'reason': 'No data'}
         
-        final_rate = self.rate_history[-1]
-        initial_rate = self.rate_history[0]
+        final_rate = float(self.rate_history[-1])
+        initial_rate = float(self.rate_history[0])
         
-        success = final_rate < self.config.target_rate_deg_s
+        success = bool(final_rate < float(self.config.target_rate_deg_s))
         
         # Find time to reach target (if ever)
         time_to_target = None
@@ -167,19 +170,19 @@ class DetumbleScenario:
             # ln(rate) = ln(A) - t/tau
             log_rates = np.log(np.maximum(rates, 0.001))
             coeffs = np.polyfit(times, log_rates, 1)
-            tau = -1.0 / coeffs[0] if abs(coeffs[0]) > 1e-10 else float('inf')
+            tau = float(-1.0 / coeffs[0]) if abs(coeffs[0]) > 1e-10 else float('inf')
         else:
             tau = float('inf')
         
         return {
             'success': success,
-            'initial_rate_deg_s': initial_rate,
-            'final_rate_deg_s': final_rate,
-            'rate_reduction_percent': (1 - final_rate/initial_rate) * 100 if initial_rate > 0 else 0,
-            'time_to_target_s': time_to_target,
-            'time_to_target_min': time_to_target / 60 if time_to_target else None,
+            'initial_rate_deg_s': float(initial_rate),
+            'final_rate_deg_s': float(final_rate),
+            'rate_reduction_percent': float((1 - final_rate/initial_rate) * 100) if initial_rate > 0 else 0.0,
+            'time_to_target_s': float(time_to_target) if time_to_target is not None else None,
+            'time_to_target_min': float(time_to_target / 60) if time_to_target is not None else None,
             'time_constant_s': tau,
-            'total_duration_s': self.time_history[-1] if self.time_history else 0,
+            'total_duration_s': float(self.time_history[-1]) if self.time_history else 0.0,
         }
     
     def get_summary(self) -> str:

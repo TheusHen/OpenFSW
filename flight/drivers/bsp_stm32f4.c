@@ -1,4 +1,4 @@
-#include "openfsw/bsp.h"
+#include "bsp.h"
 
 /* Minimal STM32F4 register-level BSP (no HAL).
  * Adjust addresses/clock assumptions for your exact STM32F4 part.
@@ -119,24 +119,24 @@ void bsp_watchdog_kick(void)
     IWDG->KR = 0xAAAAu;
 }
 
-openfsw_reset_cause_t bsp_reset_get_cause(void)
+reset_cause_t bsp_reset_get_cause(void)
 {
     const uint32_t csr = RCC->CSR;
-    openfsw_reset_cause_t cause = OPENFSW_RESET_UNKNOWN;
+    reset_cause_t cause = RESET_CAUSE_UNKNOWN;
 
     /* Priority is somewhat subjective; choose the most specific first. */
     if ((csr & RCC_CSR_BORRSTF) != 0u) {
-        cause = OPENFSW_RESET_BROWN_OUT;
+        cause = RESET_CAUSE_BROWN_OUT;
     } else if ((csr & RCC_CSR_PORRSTF) != 0u) {
-        cause = OPENFSW_RESET_POWER_ON;
+        cause = RESET_CAUSE_POWER_ON;
     } else if ((csr & RCC_CSR_PINRSTF) != 0u) {
-        cause = OPENFSW_RESET_PIN;
+        cause = RESET_CAUSE_PIN;
     } else if (((csr & RCC_CSR_IWDGRSTF) != 0u) || ((csr & RCC_CSR_WWDGRSTF) != 0u)) {
-        cause = OPENFSW_RESET_WATCHDOG;
+        cause = RESET_CAUSE_WATCHDOG;
     } else if ((csr & RCC_CSR_SFTRSTF) != 0u) {
-        cause = OPENFSW_RESET_SOFTWARE;
+        cause = RESET_CAUSE_SOFTWARE;
     } else if ((csr & RCC_CSR_LPWRRSTF) != 0u) {
-        cause = OPENFSW_RESET_UNKNOWN;
+        cause = RESET_CAUSE_LOW_POWER;
     }
 
     /* Clear reset flags */
