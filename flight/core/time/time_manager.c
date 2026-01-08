@@ -10,11 +10,9 @@
 /* State                                                                     */
 /*===========================================================================*/
 static struct {
-    uint32_t boot_time_s;       /* Time since boot in seconds */
-    uint32_t boot_time_sub_ms;  /* Subsecond counter in ms */
-    ofsw_met_t mission_time;    /* Mission elapsed time */
+    ofsw_met_t mission_time;    /* Mission elapsed time (seconds) */
     ofsw_timestamp_t utc_base;  /* UTC base when synced */
-    uint32_t utc_sync_uptime;   /* Uptime when UTC was synced */
+    uint32_t utc_sync_uptime_s; /* Uptime when UTC was synced (seconds) */
     int32_t drift_ppm;          /* Drift correction in PPM */
     bool utc_synced;
     osal_mutex_t mutex;
@@ -77,47 +75,35 @@ static void seconds_to_datetime(uint32_t total_seconds, ofsw_datetime_t *dt)
 void time_manager_init(void)
 {
     osal_mutex_create(&g_time.mutex);
-    
-    g_time.boot_time_s = 0;
-    g_time.boot_time_sub_ms = 0;
+
     g_time.mission_time = 0;
     g_time.utc_base.seconds = 0;
     g_time.utc_base.subseconds = 0;
-    g_time.utc_sync_uptime = 0;
+    g_time.utc_sync_uptime_s = 0;
     g_time.drift_ppm = 0;
     g_time.utc_synced = false;
 }
 
 void time_manager_tick(void)
 {
-    osal_mutex_lock(g_time.mutex, OSAL_WAIT_FOREVER);
-    
-    /* Increment subsecond counter */
-    g_time.boot_time_sub_ms++;
-    
-    if (g_time.boot_time_sub_ms >= 1000) {
-        g_time.boot_time_sub_ms = 0;
-        g_time.boot_time_s++;
-        g_time.mission_time++;
-    }
-    
-    osal_mutex_unlock(g_time.mutex);
+    /* Legacy hook. OpenFSW uses OSAL tick-based time as source of truth.
+     * Keep this as a no-op to preserve API stability.
+     */
 }
 
 ofsw_time_ms_t time_get_ms(void)
 {
-    return (g_time.boot_time_s * 1000) + g_time.boot_time_sub_ms;
+    return osal_get_time_ms();
 }
 
 ofsw_time_us_t time_get_us(void)
 {
-    return ((ofsw_time_us_t)g_time.boot_time_s * 1000000ULL) + 
-           ((ofsw_time_us_t)g_time.boot_time_sub_ms * 1000ULL);
+    return (ofsw_time_us_t)osal_get_time_ms() * 1000ULL;
 }
 
 uint32_t time_get_seconds(void)
 {
-    return g_time.boot_time_s;
+    return (uint32_t)(osal_get_time_ms() / 1000u);
 }
 
 ofsw_met_t time_get_met(void)
@@ -134,7 +120,12 @@ void time_set_met(ofsw_met_t met)
 
 uint32_t time_get_uptime_seconds(void)
 {
-    return g_time.boot_time_s;
+    return time_get_seconds();
+}
+
+ofsw_time_ms_t time_get_uptime_ms(void)
+{
+    return time_get_ms();
 }
 
 bool time_is_synced(void)
@@ -148,7 +139,7 @@ void time_sync_utc(const ofsw_timestamp_t *utc)
     
     osal_mutex_lock(g_time.mutex, OSAL_WAIT_FOREVER);
     g_time.utc_base = *utc;
-    g_time.utc_sync_uptime = g_time.boot_time_s;
+    g_time.utc_sync_uptime_s = time_get_seconds();
     g_time.utc_synced = true;
     osal_mutex_unlock(g_time.mutex);
 }
@@ -164,8 +155,8 @@ openfsw_status_t time_get_utc(ofsw_timestamp_t *utc)
     }
     
     osal_mutex_lock(g_time.mutex, OSAL_WAIT_FOREVER);
-    
-    uint32_t elapsed = g_time.boot_time_s - g_time.utc_sync_uptime;
+
+    uint32_t elapsed = time_get_seconds() - g_time.utc_sync_uptime_s;
     
     /* Apply drift correction */
     if (g_time.drift_ppm != 0) {
@@ -174,7 +165,7 @@ openfsw_status_t time_get_utc(ofsw_timestamp_t *utc)
     }
     
     utc->seconds = g_time.utc_base.seconds + elapsed;
-    utc->subseconds = g_time.boot_time_sub_ms * 1000;
+    utc->subseconds = (osal_get_time_ms() % 1000u) * 1000u;
     
     osal_mutex_unlock(g_time.mutex);
     
@@ -214,9 +205,9 @@ int32_t time_get_drift_correction(void)
 void time_get_timestamp(ofsw_timestamp_t *ts)
 {
     if (!ts) return;
-    
-    ts->seconds = g_time.boot_time_s;
-    ts->subseconds = g_time.boot_time_sub_ms * 1000;
+
+    ts->seconds = time_get_seconds();
+    ts->subseconds = (osal_get_time_ms() % 1000u) * 1000u;
 }
 
 uint32_t time_diff_ms(const ofsw_timestamp_t *a, const ofsw_timestamp_t *b)

@@ -45,11 +45,20 @@ void time_set_met(ofsw_met_t met);
 /* Uptime */
 uint32_t time_get_uptime_seconds(void);
 
+/* Convenience (ms) for scheduling/telemetry timestamps. */
+ofsw_time_ms_t time_get_uptime_ms(void);
+
 /* UTC time (if synchronized) */
 bool time_is_synced(void);
 void time_sync_utc(const ofsw_timestamp_t *utc);
 openfsw_status_t time_get_utc(ofsw_timestamp_t *utc);
 openfsw_status_t time_get_datetime(ofsw_datetime_t *dt);
+
+/* Compatibility alias (used by TC handlers). */
+static inline void time_set_utc(const ofsw_timestamp_t *utc)
+{
+    time_sync_utc(utc);
+}
 
 /* Time drift correction */
 void time_set_drift_correction(int32_t ppm);

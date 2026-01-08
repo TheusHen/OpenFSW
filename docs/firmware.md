@@ -25,3 +25,9 @@ Currently, the CTest test list includes a `pytest` test (host-side) to provide a
 - The linker script is in `linker/linker.ld`.
 - FreeRTOS kernel sources are vendored in `third_party/FreeRTOS-Kernel/`.
 - The build uses `-specs=nosys.specs`; syscall stubs are expected in typical bare-metal environments.
+
+## RTOS configuration
+
+- FreeRTOS software timers are enabled (`configUSE_TIMERS=1`).
+- A `heap_4.c` heap is linked for dynamic allocation support (recommended), while most services still prefer static allocation for determinism.
+- Idle and Timer service tasks are provided with static memory via `vApplicationGetIdleTaskMemory()` and `vApplicationGetTimerTaskMemory()`.

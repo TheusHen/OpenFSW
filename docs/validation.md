@@ -19,6 +19,9 @@ Profiles:
 - `standard`: moderate runtime
 - `full`: longer/heavier
 
+Detumble note:
+- Magnetic detumble (B-dot) is intentionally run on a realistic time horizon (tens of minutes). Even in `smoke`, detumble runs long enough to be physically meaningful.
+
 ## Outputs
 
 Artifacts are written into:
@@ -59,3 +62,11 @@ Includes:
 
 - Firmware is bare-metal ARM; `ctest` is used for orchestration and (currently) runs host-side Python tests as a CTest test.
 - Simulation plots use a headless Matplotlib backend (Agg), so no GUI is required.
+
+## Example: detumble result
+
+The runner writes a scenario summary into `build/reports/latest/data/detumble_results.json`.
+
+Typical successful run characteristics are:
+- large rate reduction ($>90\%$)
+- time-to-target on the order of $\sim 30$–$90$ minutes (depends on initial rate, gain, dipole limit, and orbit/magnetic field)

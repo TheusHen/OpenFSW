@@ -43,6 +43,8 @@ Profiles:
 - `standard`: moderate runtime
 - `full`: heavier/longer runs
 
+Detumble note: convergence is intentionally evaluated over tens of minutes (not a 3-minute window).
+
 Artifacts:
 - `build/reports/latest/` (most recent)
 - `build/reports/<timestamp>/` (archived run)

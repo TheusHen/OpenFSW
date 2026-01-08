@@ -17,6 +17,7 @@ target_sources(freertos_kernel PRIVATE
   third_party/FreeRTOS-Kernel/timers.c
   third_party/FreeRTOS-Kernel/event_groups.c
   third_party/FreeRTOS-Kernel/stream_buffer.c
+  third_party/FreeRTOS-Kernel/portable/MemMang/heap_4.c
   third_party/FreeRTOS-Kernel/portable/GCC/ARM_CM4F/port.c
 )
 target_include_directories(freertos_kernel PUBLIC
@@ -35,11 +36,27 @@ add_executable(openfsw.elf
   flight/boot/startup.S
   flight/boot/boot.c
   flight/core/system.c
+  flight/core/time/time_manager.c
+  flight/core/logging/event_log.c
+  flight/core/logging/logger.c
+  flight/core/health/health_monitor.c
   flight/core/health/health.c
   flight/core/scheduler/scheduler.c
+  flight/core/mode/mode_manager.c
+  flight/fdir/fdir.c
+  flight/eps/eps.c
+  flight/comms/ccsds/ccsds.c
+  flight/comms/telemetry.c
+  flight/comms/telecommand.c
+  flight/comms/beacon/beacon.c
+  flight/osal/osal_freertos.c
   flight/rtos/rtos_freertos.c
   flight/rtos/freertos_hooks.c
   flight/rtos/port_compat.c
+  flight/drivers/uart/uart.c
+  flight/drivers/i2c/i2c.c
+  flight/drivers/spi/spi.c
+  flight/drivers/gpio/gpio.c
 )
 
 if(OPENFSW_BSP STREQUAL "stm32f4")

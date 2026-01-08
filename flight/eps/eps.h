@@ -67,6 +67,19 @@ typedef struct {
     bool critical_power;
 } eps_telemetry_t;
 
+/* Compatibility status struct used by comms beacon/HK.
+ * Keep it small and stable; map from eps_telemetry_t internally.
+ */
+typedef struct {
+    uint16_t battery_voltage_mv;
+    int16_t battery_current_ma;
+    uint8_t battery_soc;
+    int8_t battery_temp_c;
+    uint16_t solar_power_mw;
+    uint8_t rail_status;
+    uint8_t low_power_flag;
+} eps_status_t;
+
 /*===========================================================================*/
 /* Thresholds                                                                */
 /*===========================================================================*/
@@ -114,5 +127,8 @@ void eps_restore_loads(void);
 
 /* Telemetry */
 const eps_telemetry_t* eps_get_telemetry(void);
+
+/* Compatibility API */
+openfsw_status_t eps_get_status(eps_status_t *status);
 
 #endif /* EPS_H */

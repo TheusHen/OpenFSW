@@ -220,6 +220,30 @@ const power_budget_t* eps_get_budget(void)
     return &g_eps.telemetry.budget;
 }
 
+openfsw_status_t eps_get_status(eps_status_t *status)
+{
+    if (!status) return OPENFSW_ERROR_INVALID_PARAM;
+    if (!g_eps.initialized) return OPENFSW_ERROR_NOT_READY;
+
+    osal_mutex_lock(g_eps.mutex, OSAL_WAIT_FOREVER);
+
+    status->battery_voltage_mv = g_eps.telemetry.battery.voltage_mv;
+    status->battery_current_ma = g_eps.telemetry.battery.current_ma;
+    status->battery_soc = g_eps.telemetry.battery.soc_percent;
+    status->battery_temp_c = g_eps.telemetry.battery.temperature_c;
+    status->solar_power_mw = g_eps.telemetry.budget.generation_mw;
+    status->rail_status = 0u;
+    for (int i = 0; i < RAIL_COUNT; i++) {
+        if (g_eps.telemetry.rail_status[i]) {
+            status->rail_status |= (uint8_t)(1u << i);
+        }
+    }
+    status->low_power_flag = g_eps.telemetry.low_power_mode ? 1u : 0u;
+
+    osal_mutex_unlock(g_eps.mutex);
+    return OPENFSW_OK;
+}
+
 bool eps_can_support_load(uint16_t power_mw)
 {
     if (g_eps.telemetry.critical_power) {

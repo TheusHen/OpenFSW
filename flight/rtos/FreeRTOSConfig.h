@@ -26,10 +26,18 @@
 #define configUSE_IDLE_HOOK                     0
 #define configUSE_TICK_HOOK                     0
 
-#define configUSE_TIMERS                        0
+#define configUSE_TIMERS                        1
+/* Timer service task settings (only used when configUSE_TIMERS=1). */
+#define configTIMER_TASK_PRIORITY               ( configMAX_PRIORITIES - 1 )
+#define configTIMER_QUEUE_LENGTH                8
+#define configTIMER_TASK_STACK_DEPTH            ( configMINIMAL_STACK_SIZE * 2 )
 
 #define configSUPPORT_STATIC_ALLOCATION         1
-#define configSUPPORT_DYNAMIC_ALLOCATION        0
+/* Enable dynamic allocation so heap_4.c can be used (recommended for flight builds).
+ * Most OpenFSW services still prefer static allocation for determinism.
+ */
+#define configSUPPORT_DYNAMIC_ALLOCATION        1
+#define configTOTAL_HEAP_SIZE                   ( 32 * 1024 )
 
 #define configCHECK_FOR_STACK_OVERFLOW          2
 #define configUSE_MALLOC_FAILED_HOOK            0

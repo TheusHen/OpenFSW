@@ -47,3 +47,7 @@ Columns include:
 - The simulation is intended for development and architectural validation, not high-fidelity flight qualification.
 - Environmental models are simplified.
 - Controller tuning is scenario-dependent.
+
+## Detumble time scale
+
+Detumble is a slow process in realistic magnetic control: expect convergence on the order of tens of minutes, not seconds.

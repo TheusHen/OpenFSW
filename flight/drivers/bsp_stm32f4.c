@@ -54,6 +54,10 @@ typedef struct {
 #define RCC   ((rcc_t *)RCC_BASE)
 #define IWDG  ((iwdg_t *)IWDG_BASE)
 
+#define SCB_AIRCR          (*((volatile uint32_t *)0xE000ED0Cu))
+#define SCB_AIRCR_VECTKEY  (0x5FAu << 16)
+#define SCB_AIRCR_SYSRESETREQ (1u << 2)
+
 /* RCC->CSR bits */
 #define RCC_CSR_LSION_Pos      0u
 #define RCC_CSR_LSION          (1u << RCC_CSR_LSION_Pos)
@@ -83,6 +87,17 @@ void bsp_clock_basic_init(void)
     while ((RCC->CSR & RCC_CSR_LSIRDY) == 0u) {
         /* wait */
     }
+}
+
+uint32_t bsp_clock_get_sysclk(void)
+{
+    /* Minimal BSP keeps default HSI. */
+    return 16000000u;
+}
+
+uint32_t bsp_clock_get_hclk(void)
+{
+    return bsp_clock_get_sysclk();
 }
 
 void bsp_watchdog_init(void)
@@ -119,6 +134,14 @@ void bsp_watchdog_kick(void)
     IWDG->KR = 0xAAAAu;
 }
 
+void bsp_watchdog_set_timeout(uint32_t ms)
+{
+    (void)ms;
+    /* TODO: Convert ms to prescaler/reload based on measured LSI.
+     * Keep a fixed configuration for now.
+     */
+}
+
 reset_cause_t bsp_reset_get_cause(void)
 {
     const uint32_t csr = RCC->CSR;
@@ -145,10 +168,59 @@ reset_cause_t bsp_reset_get_cause(void)
     return cause;
 }
 
+void bsp_reset_software(void)
+{
+    /* Request a system reset via AIRCR. */
+    SCB_AIRCR = SCB_AIRCR_VECTKEY | SCB_AIRCR_SYSRESETREQ;
+    for (;;) {
+        __asm volatile("nop");
+    }
+}
+
+void bsp_reset_subsystem(subsystem_id_t subsys)
+{
+    (void)subsys;
+    /* TODO: Board-specific peripheral reset (RCC resets).
+     * Keep stub to avoid hardcoding peripherals.
+     */
+}
+
 bool bsp_safe_mode_pin_asserted(void)
 {
     /* Board-specific: implement via GPIO strap.
      * Keeping default false here to avoid hardcoding a random pin.
      */
     return false;
+}
+
+void bsp_power_enter_low_power(void)
+{
+    /* TODO: Enter STOP/STANDBY depending on mission policy. */
+}
+
+void bsp_power_enable_rail(uint8_t rail)
+{
+    (void)rail;
+    /* TODO: implement load-switch control via GPIO. */
+}
+
+void bsp_power_disable_rail(uint8_t rail)
+{
+    (void)rail;
+}
+
+void bsp_debug_putchar(char c)
+{
+    (void)c;
+    /* TODO: Wire to SWO/ITM or UART.
+     * Keeping silent in the bare-metal ELF build.
+     */
+}
+
+void bsp_debug_puts(const char *str)
+{
+    if (!str) return;
+    while (*str) {
+        bsp_debug_putchar(*str++);
+    }
 }

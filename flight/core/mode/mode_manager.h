@@ -107,4 +107,15 @@ void mode_manager_set_entry_callback(mode_entry_fn_t fn);
 typedef void (*mode_exit_fn_t)(system_mode_t mode);
 void mode_manager_set_exit_callback(mode_exit_fn_t fn);
 
+/* Compatibility aliases used by older comms/handlers. */
+static inline system_mode_t mode_get_current(void)
+{
+    return mode_manager_get_current();
+}
+
+static inline openfsw_status_t mode_request_transition(system_mode_t mode)
+{
+    return mode_manager_request(mode);
+}
+
 #endif /* MODE_MANAGER_H */
