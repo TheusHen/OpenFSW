@@ -240,7 +240,11 @@ class AttitudeDynamics:
         new_state = state + deriv * dt
         
         # Normalize quaternion
-        new_state[:4] /= np.linalg.norm(new_state[:4])
+        q_norm = np.linalg.norm(new_state[:4])
+        if q_norm < 1e-12 or not np.isfinite(q_norm):
+            new_state[:4] = np.array([1.0, 0.0, 0.0, 0.0])
+        else:
+            new_state[:4] /= q_norm
         
         return new_state
     
@@ -254,7 +258,11 @@ class AttitudeDynamics:
         new_state = state + (dt/6) * (k1 + 2*k2 + 2*k3 + k4)
         
         # Normalize quaternion
-        new_state[:4] /= np.linalg.norm(new_state[:4])
+        q_norm = np.linalg.norm(new_state[:4])
+        if q_norm < 1e-12 or not np.isfinite(q_norm):
+            new_state[:4] = np.array([1.0, 0.0, 0.0, 0.0])
+        else:
+            new_state[:4] /= q_norm
         
         return new_state
     
@@ -303,6 +311,12 @@ class DetumbleController:
         Returns:
             Dipole command [Am²]
         """
+        if dt <= 0 or not np.isfinite(dt):
+            return np.zeros(3)
+
+        if not np.all(np.isfinite(b_field)):
+            return np.zeros(3)
+
         if self.b_prev is None:
             self.b_prev = b_field
             self.dt_prev = dt
@@ -313,6 +327,9 @@ class DetumbleController:
         
         # B-dot control law
         dipole = -self.gain * b_dot
+
+        if not np.all(np.isfinite(dipole)):
+            dipole = np.zeros(3)
         
         # Store for next iteration
         self.b_prev = b_field

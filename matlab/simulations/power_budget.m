@@ -14,6 +14,7 @@ sun_dir = [1; 0; 0];
 soc = zeros(size(time_s));
 illumination = zeros(size(time_s));
 net_power_W = zeros(size(time_s));
+payload_power_W = zeros(size(time_s));
 
 soc(1) = params.power.initial_soc;
 battery_capacity_Wh = params.power.battery_capacity_Wh;
@@ -26,7 +27,10 @@ for k = 1:length(time_s)
     illumination(k) = eclipse_fraction(r_eci, sun_dir, constants.re_km);
 
     power_gen = params.power.panel_area_m2 * constants.solar_flux * params.power.solar_efficiency * illumination(k);
-    power_load = params.power.payload_load_W + params.power.bus_load_W;
+
+    payload_power_W(k) = params.power.payload_load_W * params.power.payload_duty_cycle;
+    power_load = payload_power_W(k) + params.power.bus_load_W;
+
     net_power_W(k) = power_gen - power_load;
 
     if k > 1
@@ -38,6 +42,7 @@ end
 output.time_s = time_s;
 output.illumination = illumination;
 output.net_power_W = net_power_W;
+output.payload_power_W = payload_power_W;
 output.soc = soc;
 output.params = params;
 output.constants = constants;
@@ -53,7 +58,7 @@ fprintf('Power budget simulation complete. Saved to %s\n', output_path);
 
 %% Local functions
 function fraction = eclipse_fraction(r_eci, sun_dir, re_km)
-    sun_dir = sun_dir / norm(sun_dir);
+    sun_dir = sun_dir / max(norm(sun_dir), 1e-12);
     proj = dot(r_eci, sun_dir) * sun_dir;
     perp = r_eci - proj;
     perp_dist = norm(perp);

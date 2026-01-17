@@ -10,6 +10,7 @@
 #include "../../core/time/time_manager.h"
 #include "../../core/mode/mode_manager.h"
 #include "../../eps/eps.h"
+#include "../../adcs/adcs_interface.h"
 #include "../ccsds/ccsds.h"
 #include <string.h>
 
@@ -133,11 +134,13 @@ void beacon_build_frame(beacon_frame_t *frame)
     frame->battery_temp_c = eps.battery_temp_c;
     frame->solar_power_mw = eps.solar_power_mw;
     
-    /* ADCS Status - TODO: Get from ADCS module */
-    frame->quaternion_w = 32767;  /* 1.0 in Q15 */
-    frame->quaternion_x = 0;
-    frame->quaternion_y = 0;
-    frame->quaternion_z = 0;
+    /* ADCS Status */
+    adcs_telemetry_t adcs;
+    adcs_get_telemetry(&adcs);
+    frame->quaternion_w = (int16_t)(adcs.quaternion[0] * 32767.0f);
+    frame->quaternion_x = (int16_t)(adcs.quaternion[1] * 32767.0f);
+    frame->quaternion_y = (int16_t)(adcs.quaternion[2] * 32767.0f);
+    frame->quaternion_z = (int16_t)(adcs.quaternion[3] * 32767.0f);
     
     /* Thermal - TODO: Get from thermal sensors */
     frame->temp_obc_c = 25;

@@ -127,7 +127,7 @@ package body ADCS.Controller is
       --  Convert torque to dipole using cross product with B field
       --  T = m x B  =>  m = (B x T) / |B|²
       B_Norm := Vector_Norm (Mag_Field);
-      if B_Norm < 1.0e-6 then
+      if B_Norm < Min_B_Field then
          return;
       end if;
       
@@ -194,7 +194,7 @@ package body ADCS.Controller is
       
       --  Convert to dipole
       B_Norm := Vector_Norm (Mag_Field);
-      if B_Norm < 1.0e-6 then
+      if B_Norm < Min_B_Field then
          return;
       end if;
       

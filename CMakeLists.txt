@@ -44,6 +44,7 @@ add_executable(openfsw.elf
   flight/core/scheduler/scheduler.c
   flight/core/mode/mode_manager.c
   flight/fdir/fdir.c
+  flight/adcs/adcs_interface.c
   flight/eps/eps.c
   flight/comms/ccsds/ccsds.c
   flight/comms/telemetry.c

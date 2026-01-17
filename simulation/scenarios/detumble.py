@@ -84,10 +84,15 @@ class DetumbleScenario:
         # Compute B-dot dipole command
         dt = sim.config.time_step_seconds
         dipole = self.controller.compute_dipole(b_field, dt)
+        if not np.all(np.isfinite(dipole)):
+            dipole = np.zeros(3)
         
         # Limit dipole
-        dipole = np.clip(dipole, -self.config.max_dipole_Am2, 
-                         self.config.max_dipole_Am2)
+        dipole = np.clip(
+            dipole,
+            -self.config.max_dipole_Am2,
+            self.config.max_dipole_Am2,
+        )
         
         # Command magnetorquers
         sim.command_magnetorquers(dipole)

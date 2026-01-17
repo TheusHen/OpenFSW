@@ -14,7 +14,7 @@ orbital_rate = sqrt(constants.mu_km3_s2 / orbital_radius_km^3); % rad/s
 
 % Simulation settings
 sim_time_s = 3600;
-dt = 0.1;
+dt = 0.05;
 steps = floor(sim_time_s / dt);
 
 q = zeros(4, steps);
@@ -24,8 +24,10 @@ time = zeros(steps, 1);
 q(:,1) = q0;
 omega(:,1) = omega0;
 
-% B-dot gain
-k_bdot = 2e5; % A*m^2 / (T/s)
+% B-dot gain and actuator limits
+k_bdot = params.detumble.k_bdot; % A*m^2 / (T/s)
+max_dipole = params.detumble.max_dipole_Am2;
+b_field_floor = params.detumble.b_field_floor_T;
 
 for k = 1:(steps-1)
     t = (k-1) * dt;
@@ -43,8 +45,13 @@ for k = 1:(steps-1)
     b_body = R_bi * b_eci;
 
     % B-dot law: m = -k * dB/dt ≈ -k * (omega x B)
+    b_norm = norm(b_body);
+    if b_norm < b_field_floor
+        b_body = b_body / max(b_norm, 1e-12) * b_field_floor;
+    end
     bdot = cross(omega(:,k), b_body);
     m_cmd = -k_bdot * bdot;
+    m_cmd = max(min(m_cmd, max_dipole), -max_dipole);
 
     % Torque from magnetorquers
     tau_mag = cross(m_cmd, b_body);
@@ -56,6 +63,13 @@ for k = 1:(steps-1)
 
     % Propagate attitude
     [q(:,k+1), omega(:,k+1)] = rk4_attitude_step(q(:,k), omega(:,k), tau_total, params.inertia, dt);
+
+    if any(~isfinite(q(:,k+1))) || any(~isfinite(omega(:,k+1)))
+        warning('NaN detected at t=%.2f s. Stopping integration.', t);
+        q(:,k+1:end) = repmat(q(:,k), 1, steps - k);
+        omega(:,k+1:end) = repmat(omega(:,k), 1, steps - k);
+        break;
+    end
 end
 
 time(end) = sim_time_s;
@@ -85,7 +99,7 @@ function [q_next, omega_next] = rk4_attitude_step(q, omega, torque, inertia, dt)
     q_next = q + (dt/6) * (k1(1:4) + 2*k2(1:4) + 2*k3(1:4) + k4(1:4));
     omega_next = omega + (dt/6) * (k1(5:7) + 2*k2(5:7) + 2*k3(5:7) + k4(5:7));
 
-    q_next = q_next / norm(q_next);
+    q_next = q_next / max(norm(q_next), 1e-12);
 end
 
 function dx = attitude_derivatives(q, omega, torque, inertia)
@@ -116,17 +130,3 @@ function tau = gravity_gradient_torque(inertia, r_eci_km, q, mu)
     R = quat_to_dcm(q);
     nadir_body = R' * nadir_eci;
     factor = 3 * mu * 1e9 / r_m^3; % convert km^3 to m^3
-    tau = factor * cross(nadir_body, inertia * nadir_body);
-end
-
-function b = earth_dipole_field(r_m)
-    mu0 = 4 * pi * 1e-7;
-    M = 7.94e22; % Earth's dipole moment [A*m^2]
-    r = norm(r_m);
-    if r < 1
-        b = [0; 0; 0];
-        return;
-    end
-    m_vec = [0; 0; M];
-    b = (mu0 / (4*pi)) * (3 * r_m * dot(m_vec, r_m) / r^5 - m_vec / r^3);
-end
