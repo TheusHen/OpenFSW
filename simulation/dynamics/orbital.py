@@ -6,8 +6,9 @@ Two-body orbital dynamics with perturbations for LEO satellites.
 """
 
 import numpy as np
-from typing import Tuple, Optional
+from typing import Optional
 from ..core.spacecraft import OrbitalState
+from ..environment.atmosphere import AtmosphereModel
 
 
 class OrbitalDynamics:
@@ -24,34 +25,50 @@ class OrbitalDynamics:
     MU = 398600.4418  # km³/s² - gravitational parameter
     RE = 6378.137  # km - equatorial radius
     J2 = 1.08263e-3  # J2 coefficient
-    
-    # Atmosphere model constants (simplified exponential)
-    RHO_0 = 1.225e-12  # kg/m³ reference density at sea level (scaled)
-    H_0 = 7.249  # km - scale height
+
+    # Solar radiation pressure constants
+    AU_KM = 149597870.7  # km
+    SOLAR_PRESSURE_N_M2 = 4.56e-6  # N/m² at 1 AU
+    OMEGA_EARTH_RAD_S = 7.2921159e-5  # rad/s
     
     def __init__(self, 
                  enable_j2: bool = True,
                  enable_drag: bool = False,
+                 enable_solar_radiation_pressure: bool = False,
                  drag_coefficient: float = 2.2,
                  area_m2: float = 0.034,  # 3U CubeSat 10x34cm face
-                 mass_kg: float = 4.0):
+                 mass_kg: float = 4.0,
+                 srp_coefficient: float = 1.3,
+                 srp_area_m2: Optional[float] = None,
+                 atmosphere_model: Optional[AtmosphereModel] = None):
         """
         Initialize orbital dynamics.
         
         Args:
             enable_j2: Enable J2 perturbation
             enable_drag: Enable atmospheric drag
+            enable_solar_radiation_pressure: Enable solar radiation pressure
             drag_coefficient: Drag coefficient (Cd)
             area_m2: Cross-sectional area in m²
             mass_kg: Spacecraft mass in kg
+            srp_coefficient: Solar radiation pressure coefficient (Cr)
+            srp_area_m2: Effective SRP area in m² (defaults to area_m2)
+            atmosphere_model: Optional atmosphere model
         """
         self.enable_j2 = enable_j2
         self.enable_drag = enable_drag
+        self.enable_srp = enable_solar_radiation_pressure
         self.cd = drag_coefficient
         self.area = area_m2
         self.mass = mass_kg
+        self.srp_coefficient = srp_coefficient
+        self.srp_area = srp_area_m2 if srp_area_m2 is not None else area_m2
+        self.atmosphere = atmosphere_model or AtmosphereModel()
     
-    def acceleration(self, state: np.ndarray) -> np.ndarray:
+    def acceleration(self,
+                     state: np.ndarray,
+                     sun_pos_eci_km: Optional[np.ndarray] = None,
+                     srp_fraction: float = 1.0) -> np.ndarray:
         """
         Calculate total acceleration.
         
@@ -73,6 +90,9 @@ class OrbitalDynamics:
         
         if self.enable_drag:
             a += self._drag_acceleration(r, v)
+
+        if self.enable_srp and sun_pos_eci_km is not None:
+            a += self._srp_acceleration(sun_pos_eci_km, srp_fraction)
         
         return a
     
@@ -107,35 +127,66 @@ class OrbitalDynamics:
         Uses exponential atmosphere model.
         """
         r_mag = np.linalg.norm(r)
-        altitude = r_mag - self.RE
-        
-        # Atmospheric density (exponential model)
-        if altitude < 200:
-            # Below 200km, use higher density
-            rho = self.RHO_0 * np.exp(-(altitude) / self.H_0)
-        elif altitude < 1000:
-            # Simplified model for LEO
-            rho = 1e-12 * np.exp(-(altitude - 500) / 60)  # kg/km³
-        else:
-            rho = 0.0
-        
-        # Relative velocity (assuming co-rotating atmosphere)
-        omega_earth = 7.2921159e-5  # rad/s
-        v_atm = np.array([-omega_earth * r[1], omega_earth * r[0], 0])  # km/s
-        v_rel = v - v_atm
-        v_rel_mag = np.linalg.norm(v_rel)
-        
-        if v_rel_mag < 1e-10:
+        altitude_km = r_mag - self.RE
+
+        # Atmospheric density [kg/m³]
+        rho = self.atmosphere.density(altitude_km)
+        if rho <= 0:
             return np.zeros(3)
-        
-        # Drag acceleration (km/s²)
-        # Area and density need unit conversion
-        area_km2 = self.area * 1e-6  # m² to km²
-        a_drag = -0.5 * rho * self.cd * area_km2 / self.mass * v_rel_mag * v_rel
-        
-        return a_drag
+
+        # Relative velocity (co-rotating atmosphere)
+        r_m = r * 1000.0
+        v_m_s = v * 1000.0
+        omega = np.array([0.0, 0.0, self.OMEGA_EARTH_RAD_S])
+        v_atm_m_s = np.cross(omega, r_m)
+        v_rel_m_s = v_m_s - v_atm_m_s
+        v_rel_mag = np.linalg.norm(v_rel_m_s)
+
+        if v_rel_mag < 1e-6:
+            return np.zeros(3)
+
+        a_drag_m_s2 = (
+            -0.5 * rho * self.cd * self.area / self.mass * v_rel_mag * v_rel_m_s
+        )
+        return a_drag_m_s2 / 1000.0
+
+    def _srp_acceleration(self,
+                          sun_pos_eci_km: np.ndarray,
+                          srp_fraction: float) -> np.ndarray:
+        """
+        Solar radiation pressure acceleration.
+
+        Args:
+            sun_pos_eci_km: Sun position in ECI [km] (Earth -> Sun)
+            srp_fraction: Illumination fraction (0..1)
+
+        Returns:
+            SRP acceleration [km/s²]
+        """
+        if srp_fraction <= 0.0:
+            return np.zeros(3)
+
+        r_sun = np.linalg.norm(sun_pos_eci_km)
+        if r_sun < 1e-3:
+            return np.zeros(3)
+
+        sun_dir = sun_pos_eci_km / r_sun
+        pressure = self.SOLAR_PRESSURE_N_M2 * (self.AU_KM / r_sun) ** 2
+        accel_m_s2 = (
+            -pressure
+            * self.srp_coefficient
+            * self.srp_area
+            / self.mass
+            * srp_fraction
+            * sun_dir
+        )
+        return accel_m_s2 / 1000.0
     
-    def derivatives(self, t: float, state: np.ndarray) -> np.ndarray:
+    def derivatives(self,
+                    t: float,
+                    state: np.ndarray,
+                    sun_pos_eci_km: Optional[np.ndarray] = None,
+                    srp_fraction: float = 1.0) -> np.ndarray:
         """
         State derivatives for integration.
         
@@ -147,13 +198,15 @@ class OrbitalDynamics:
             [vx, vy, vz, ax, ay, az]
         """
         v = state[3:6]
-        a = self.acceleration(state)
+        a = self.acceleration(state, sun_pos_eci_km=sun_pos_eci_km, srp_fraction=srp_fraction)
         return np.concatenate([v, a])
     
     def propagate(self, 
                   initial_state: OrbitalState, 
                   dt: float,
-                  method: str = 'rk4') -> OrbitalState:
+                  method: str = 'rk4',
+                  sun_pos_eci_km: Optional[np.ndarray] = None,
+                  srp_fraction: float = 1.0) -> OrbitalState:
         """
         Propagate orbital state by time step.
         
@@ -168,24 +221,34 @@ class OrbitalDynamics:
         state = initial_state.to_array()
         
         if method == 'euler':
-            state = self._euler_step(state, dt)
+            state = self._euler_step(state, dt, sun_pos_eci_km=sun_pos_eci_km, srp_fraction=srp_fraction)
         elif method == 'rk4':
-            state = self._rk4_step(state, dt)
+            state = self._rk4_step(state, dt, sun_pos_eci_km=sun_pos_eci_km, srp_fraction=srp_fraction)
         else:
             raise ValueError(f"Unknown integration method: {method}")
         
         return OrbitalState.from_array(state)
     
-    def _euler_step(self, state: np.ndarray, dt: float) -> np.ndarray:
+    def _euler_step(self,
+                    state: np.ndarray,
+                    dt: float,
+                    sun_pos_eci_km: Optional[np.ndarray] = None,
+                    srp_fraction: float = 1.0) -> np.ndarray:
         """Simple Euler integration step."""
-        return state + self.derivatives(0, state) * dt
+        return state + self.derivatives(
+            0, state, sun_pos_eci_km=sun_pos_eci_km, srp_fraction=srp_fraction
+        ) * dt
     
-    def _rk4_step(self, state: np.ndarray, dt: float) -> np.ndarray:
+    def _rk4_step(self,
+                  state: np.ndarray,
+                  dt: float,
+                  sun_pos_eci_km: Optional[np.ndarray] = None,
+                  srp_fraction: float = 1.0) -> np.ndarray:
         """4th order Runge-Kutta integration step."""
-        k1 = self.derivatives(0, state)
-        k2 = self.derivatives(0, state + 0.5 * dt * k1)
-        k3 = self.derivatives(0, state + 0.5 * dt * k2)
-        k4 = self.derivatives(0, state + dt * k3)
+        k1 = self.derivatives(0, state, sun_pos_eci_km=sun_pos_eci_km, srp_fraction=srp_fraction)
+        k2 = self.derivatives(0, state + 0.5 * dt * k1, sun_pos_eci_km=sun_pos_eci_km, srp_fraction=srp_fraction)
+        k3 = self.derivatives(0, state + 0.5 * dt * k2, sun_pos_eci_km=sun_pos_eci_km, srp_fraction=srp_fraction)
+        k4 = self.derivatives(0, state + dt * k3, sun_pos_eci_km=sun_pos_eci_km, srp_fraction=srp_fraction)
         
         return state + (dt / 6) * (k1 + 2*k2 + 2*k3 + k4)
     

@@ -15,6 +15,7 @@
 #include "../core/mode/mode_manager.h"
 #include "../core/health/health_monitor.h"
 #include "../eps/eps.h"
+#include "../adcs/adcs_interface.h"
 #include <string.h>
 
 /*===========================================================================*/
@@ -397,18 +398,20 @@ void telemetry_gen_power_hk(uint8_t *data, uint16_t *len)
 void telemetry_gen_adcs_hk(uint8_t *data, uint16_t *len)
 {
     tm_adcs_hk_t hk;
+    adcs_telemetry_t adcs;
+
+    adcs_get_telemetry(&adcs);
     
-    /* TODO: Get actual ADCS data from Ada module */
-    hk.quaternion_w = 32767;  /* 1.0 in Q15 */
-    hk.quaternion_x = 0;
-    hk.quaternion_y = 0;
-    hk.quaternion_z = 0;
-    hk.rate_x = 0;
-    hk.rate_y = 0;
-    hk.rate_z = 0;
-    hk.mode = 0;
-    hk.status = 0;
-    hk.error_angle = 0;
+    hk.quaternion_w = (int16_t)(adcs.quaternion[0] * 32767.0f);
+    hk.quaternion_x = (int16_t)(adcs.quaternion[1] * 32767.0f);
+    hk.quaternion_y = (int16_t)(adcs.quaternion[2] * 32767.0f);
+    hk.quaternion_z = (int16_t)(adcs.quaternion[3] * 32767.0f);
+    hk.rate_x = (int16_t)(adcs.rate_rad_s[0] * 1000.0f);
+    hk.rate_y = (int16_t)(adcs.rate_rad_s[1] * 1000.0f);
+    hk.rate_z = (int16_t)(adcs.rate_rad_s[2] * 1000.0f);
+    hk.mode = adcs.mode;
+    hk.status = adcs.status;
+    hk.error_angle = (int16_t)(adcs.error_angle_rad * 1000.0f);
     
     memcpy(data, &hk, sizeof(hk));
     *len = sizeof(hk);

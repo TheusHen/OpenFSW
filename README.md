@@ -17,6 +17,7 @@ This repository contains:
 - `flight/` — flight software (C)
 - `ground/` — ground segment (Python)
 - `simulation/` — simulation framework + scenarios (Python)
+- `matlab/` — MATLAB mission analysis suite + advanced simulations
 - `linker/` — linker scripts for bare-metal builds
 - `third_party/` — vendor dependencies (e.g., FreeRTOS kernel)
 - `tools/` — automation scripts (run-all pipeline)
@@ -83,6 +84,12 @@ Example detumble metrics are emitted into `build/reports/latest/data/detumble_re
 ## Documentation
 
 See `docs/` for deeper notes and the documentation index in `docs/README.md`.
+
+## MATLAB advanced simulations
+
+The `matlab/` directory contains a higher-fidelity mission analysis suite with J2 + drag + SRP orbit propagation, detumble attitude dynamics, power budget modeling, and link budget sweeps. Run all scripts with:
+
+`matlab -batch "run('matlab/simulations/run_all.m')"`
 
 ## Powered by
 

@@ -114,6 +114,9 @@ package ADCS is
    
    --  Actuator limits
    Max_Dipole : constant Float32 := 0.2;  --  Am²
+
+   --  Magnetic field floor to avoid singularities (Tesla)
+   Min_B_Field : constant Float32 := 1.0e-7;
    
    ---------------------------------------------------------------------------
    --  Operations
