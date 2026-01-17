@@ -130,17 +130,3 @@ function tau = gravity_gradient_torque(inertia, r_eci_km, q, mu)
     R = quat_to_dcm(q);
     nadir_body = R' * nadir_eci;
     factor = 3 * mu * 1e9 / r_m^3; % convert km^3 to m^3
-    tau = factor * cross(nadir_body, inertia * nadir_body);
-end
-
-function b = earth_dipole_field(r_m)
-    mu0 = 4 * pi * 1e-7;
-    M = 7.94e22; % Earth's dipole moment [A*m^2]
-    r = norm(r_m);
-    if r < 1
-        b = [0; 0; 0];
-        return;
-    end
-    m_vec = [0; 0; M];
-    b = (mu0 / (4*pi)) * (3 * r_m * dot(m_vec, r_m) / r^5 - m_vec / r^3);
-end
