@@ -54,6 +54,12 @@ class SpacecraftParameters:
     inertia_xy: float = 0.0
     inertia_xz: float = 0.0
     inertia_yz: float = 0.0
+
+    # Aerodynamic and SRP properties
+    drag_coefficient: float = 2.2
+    drag_area_m2: float = 0.034  # 0.10 x 0.34 m face
+    srp_coefficient: float = 1.3
+    srp_area_m2: float = 0.01  # 0.10 x 0.10 m solar panel
     
     @property
     def inertia_matrix(self) -> np.ndarray:
@@ -132,6 +138,10 @@ class SimulationConfig:
     enable_atmospheric_drag: bool = False  # Simplified for 500km
     enable_solar_radiation_pressure: bool = False
     enable_gravity_gradient: bool = True
+
+    # Environment tuning
+    solar_flux_f107: float = 150.0
+    geomagnetic_index_ap: float = 15.0
     
     # Output options
     output_rate_hz: float = 1.0  # Telemetry output rate
