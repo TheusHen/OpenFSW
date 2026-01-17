@@ -20,6 +20,7 @@ from ..sensors.gyroscope import Gyroscope
 from ..sensors.sun_sensor import SunSensorArray
 from ..actuators.magnetorquer import MagnetorquerSet
 from ..environment.magnetic_field import MagneticFieldModel
+from ..environment.atmosphere import AtmosphereModel
 from ..environment.sun import SunModel
 from ..environment.eclipse import EclipseModel
 from ..environment.ground_station import GroundStation
@@ -42,6 +43,7 @@ class SimulationState:
     
     # Environment
     in_eclipse: bool = False
+    illumination: float = 1.0
     altitude_km: float = 0.0
     
     # Ground station
@@ -87,7 +89,16 @@ class Simulator:
         self.orbital_dynamics = OrbitalDynamics(
             enable_j2=self.config.enable_j2_perturbation,
             enable_drag=self.config.enable_atmospheric_drag,
-            mass_kg=self.config.spacecraft.mass_kg
+            enable_solar_radiation_pressure=self.config.enable_solar_radiation_pressure,
+            drag_coefficient=self.config.spacecraft.drag_coefficient,
+            area_m2=self.config.spacecraft.drag_area_m2,
+            mass_kg=self.config.spacecraft.mass_kg,
+            srp_coefficient=self.config.spacecraft.srp_coefficient,
+            srp_area_m2=self.config.spacecraft.srp_area_m2,
+            atmosphere_model=AtmosphereModel(
+                solar_flux_f107=self.config.solar_flux_f107,
+                geomagnetic_index_ap=self.config.geomagnetic_index_ap,
+            ),
         )
         
         self.attitude_dynamics = AttitudeDynamics(
@@ -194,7 +205,11 @@ class Simulator:
         
         # Orbital dynamics
         self.spacecraft.orbital_state = self.orbital_dynamics.propagate(
-            self.spacecraft.orbital_state, dt, method='rk4'
+            self.spacecraft.orbital_state,
+            dt,
+            method='rk4',
+            sun_pos_eci_km=sun_pos,
+            srp_fraction=illumination,
         )
         
         # Attitude dynamics
@@ -215,6 +230,7 @@ class Simulator:
             sun_direction_body=sun_meas.copy(),
             sun_visible=sun_visible,
             in_eclipse=in_eclipse,
+            illumination=illumination,
             altitude_km=self.spacecraft.orbital_state.altitude_km,
             gs_visible=gs_visible,
             gs_elevation_deg=gs_elevation
